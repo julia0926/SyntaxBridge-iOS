@@ -70,5 +70,7 @@ When the LLM attempts to read a file using the `read_file` tool, the **SyntaxBri
 3. Delivers the generated **Skeleton Code** to the LLM instead of the raw file.
 4. The LLM grasps the overall structure and requests specific implementation details only when needed.
 
+👉 **[See Detailed Examples (Before & After)](docs/DEMO.md)**
+
 ## 📝 License
 MIT License
