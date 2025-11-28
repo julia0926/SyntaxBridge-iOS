@@ -8,8 +8,8 @@ Designed to solve **"Context Corruption"** and **"Token Waste"** when using LLMs
 
 ### 1. Intelligent Summarization
 Instead of reading the entire file, it extracts only the **Declarations** while hiding the **Implementations**.
-- **Swift**: Uses `SwiftSyntax` to replace function/variable bodies with `/* implementation hidden */`.
-- **Objective-C**: Uses `LibClang` to extract interfaces and method signatures.
+- **Swift**: Uses `SwiftSyntax` to **rewrite** the AST. It strips function bodies, property initializers, and enum values while preserving the original code structure. Unlike `SourceKitten` which outputs JSON documentation, this tool outputs valid, compilable Swift "skeleton code" that is more natural for LLMs to read.
+- **Objective-C**: Uses **Regex-based text scanning** (Python) to extract interfaces, implementations, and method signatures. This approach provides robust summarization for legacy codebases without requiring a full build environment or complex dependency resolution (unlike `LibClang`).
 
 ### 2. Hybrid Support
 - Fully supports both modern **Swift** and legacy **Objective-C** code.
