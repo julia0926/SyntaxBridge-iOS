@@ -24,6 +24,12 @@ Instead of reading the entire file, it extracts only the **Declarations** while 
 - Enables the LLM to pinpoint the exact location of functions or properties in the original file.
 - Facilitates efficient partial file reading (`read_file` with line ranges).
 
+### 5. Project Map Generation 🗺️
+- Generates a **structural map** of the entire project without reading file contents.
+- Lists all Classes, Structs, Protocols, and Extensions with icons.
+- Helps LLMs navigate the codebase efficiently by providing a "Table of Contents" before diving into specific files.
+- Usage: `./tools/generate-map.sh`
+
 ## 📊 Performance & Verification
 
 ### Test Environment
@@ -61,6 +67,20 @@ Instead of reading the entire file, it extracts only the **Declarations** while 
      }
    }
    ```
+
+## 🤖 Agent Configuration
+
+To ensure your AI agent (Cursor, Windsurf, Claude Code) effectively uses SyntaxBridge, add the following rules to your project's custom instructions file (e.g., `.cursorrules`, `.windsurfrules`, or `CLAUDE.md`).
+
+```markdown
+# SyntaxBridge Integration Rules
+
+1. **Reading Files**: When reading large Swift or Objective-C files, the system will automatically provide a summarized version via SyntaxBridge. If you need the full implementation of a specific function, use `read_file` with the specific line range indicated by `// Line: ...` comments.
+
+2. **Project Navigation**: When asked to explore the project structure or find specific classes/symbols, DO NOT use `ls -R` or `find`. Instead, execute:
+   `./tools/generate-map.sh`
+   This provides a high-level map of all classes, structs, and protocols without reading file contents.
+```
 
 ## 🛠 How It Works
 

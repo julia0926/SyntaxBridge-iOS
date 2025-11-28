@@ -247,13 +247,75 @@ def summarize_objc_file(file_path):
             in_implementation = False
             current_class = None
 
+def generate_map(file_path):
+    """Generate a JSON map of symbols in the file."""
+    if not os.path.exists(file_path):
+        print("{}", end='')
+        return
+
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        content = f.read()
+
+    methods = extract_methods_from_source(content)
+    
+    # Simple regex scanning for classes/protocols
+    symbols = []
+    
+    # Interfaces
+    for match in re.finditer(r'@interface\s+(\w+)', content):
+        symbols.append({
+            "name": match.group(1),
+            "type": "interface",
+            "line": content[:match.start()].count('\n') + 1
+        })
+        
+    # Implementations
+    for match in re.finditer(r'@implementation\s+(\w+)', content):
+        symbols.append({
+            "name": match.group(1),
+            "type": "implementation",
+            "line": content[:match.start()].count('\n') + 1
+        })
+        
+    # Protocols
+    for match in re.finditer(r'@protocol\s+(\w+)', content):
+        symbols.append({
+            "name": match.group(1),
+            "type": "protocol",
+            "line": content[:match.start()].count('\n') + 1
+        })
+
+    # Add methods
+    for method in methods:
+        symbols.append({
+            "name": f"{method['prefix']}{method['signature']}",
+            "type": "method",
+            "line": method['line']
+        })
+        
+    # Sort by line number
+    symbols.sort(key=lambda x: x['line'])
+    
+    import json
+    output = {
+        "filePath": file_path,
+        "symbols": symbols
+    }
+    print(json.dumps(output, indent=2))
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: objc-summarizer-v2.py <file-path>", file=sys.stderr)
+        print("Usage: objc-summarizer-v2.py <file-path> OR objc-summarizer-v2.py --map <file-path>", file=sys.stderr)
         sys.exit(1)
 
-    file_path = sys.argv[1]
-    summarize_objc_file(file_path)
+    if sys.argv[1] == "--map":
+        if len(sys.argv) < 3:
+            print("Usage: objc-summarizer-v2.py --map <file-path>", file=sys.stderr)
+            sys.exit(1)
+        generate_map(sys.argv[2])
+    else:
+        file_path = sys.argv[1]
+        summarize_objc_file(file_path)
 
 if __name__ == "__main__":
     main()
