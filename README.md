@@ -1,8 +1,12 @@
 # SyntaxBridge-iOS 🌉
 
+[![Korean README](https://img.shields.io/badge/README-한국어-blue)](README_KR.md)
+
+## 💡 Introduction
+
 **Intelligent Context Optimization Tool for Mixed Swift & Objective-C Projects**
 
-Designed to solve **"Context Corruption"** and **"Token Waste"** when using LLMs (Claude, GPT, etc.) in large-scale iOS projects.
+Exploring thousands of lines of raw code in large-scale iOS projects leads to **low accuracy**, **increased navigation costs**, and **massive token consumption**. SyntaxBridge solves this by providing **Project Maps** and **Intelligent Summaries (Skeleton Code)**. This allows LLMs to clearly grasp the overall architecture and focus on core logic **without context corruption**, resulting in significantly more accurate and efficient reasoning.
 
 ## 🚀 Key Features
 
