@@ -3,18 +3,52 @@ import SwiftSyntax
 import SwiftParser
 import SwiftSyntaxBuilder
 
-/// A rewriter that strips implementation details from Swift code
+/// Enhanced Swift Summarizer v2
+/// Aggressive noise reduction for better agent navigation and reduced context pollution
 class InterfaceSummarizer: SyntaxRewriter {
     let converter: SourceLocationConverter
-    
-    init(converter: SourceLocationConverter) {
+    let filePath: String
+
+    init(converter: SourceLocationConverter, filePath: String) {
         self.converter = converter
+        self.filePath = filePath
         super.init()
     }
-    
+
     private func getLineComment(for node: SyntaxProtocol) -> Trivia {
         let location = converter.location(for: node.positionAfterSkippingLeadingTrivia)
         return .newlines(1) + .lineComment("// Line: \(location.line)\n")
+    }
+
+    // Strip property initializers AND remove inline comments
+    override func visit(_ node: PatternBindingSyntax) -> PatternBindingSyntax {
+        var result = node
+
+        // Remove initializer if present
+        if node.initializer != nil {
+            result = result
+                .with(\.initializer, nil)
+                .with(\.trailingTrivia, .spaces(1) + .blockComment("/* hidden */"))
+        }
+
+        return result
+    }
+
+    // Simplify enum cases - remove associated values and raw values
+    override func visit(_ node: EnumCaseElementSyntax) -> EnumCaseElementSyntax {
+        var result = node
+
+        // Remove associated values (reduces noise from literals)
+        if node.parameterClause != nil {
+            result = result.with(\.parameterClause, nil)
+        }
+
+        // Remove raw values
+        if node.rawValue != nil {
+            result = result.with(\.rawValue, nil)
+        }
+
+        return result
     }
     
     // Strip function bodies
@@ -75,19 +109,6 @@ class InterfaceSummarizer: SyntaxRewriter {
         return DeclSyntax(newNode)
     }
     
-    // Simplify variable accessors (computed properties)
-    override func visit(_ node: PatternBindingSyntax) -> PatternBindingSyntax {
-        guard let accessor = node.accessorBlock else {
-            return node
-        }
-        
-        if case .accessors(_) = accessor.accessors {
-             // If it has explicit get/set, we might want to keep "get set" but remove bodies
-             // This is getting complex, let's stick to functions for now as they are the main noise
-        }
-        
-        return node
-    }
 }
 
 @main
@@ -97,22 +118,55 @@ struct SwiftSummarizer {
             print("Usage: swift-summarizer <file-path>")
             exit(1)
         }
-        
+
         let filePath = CommandLine.arguments[1]
         let fileURL = URL(fileURLWithPath: filePath)
-        
+
         do {
             let source = try String(contentsOf: fileURL, encoding: .utf8)
             let sourceFile = Parser.parse(source: source)
             let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
-            
-            let rewriter = InterfaceSummarizer(converter: converter)
+
+            // Print header with file path for disambiguation
+            print("// SyntaxBridge Summary")
+            print("// File: \(filePath)")
+            print("// ─────────────────────────────────────────")
+            print()
+
+            let rewriter = InterfaceSummarizer(converter: converter, filePath: filePath)
             let modified = rewriter.visit(sourceFile)
-            
-            print(modified.description)
+
+            // Clean up output by removing excessive blank lines
+            let output = modified.description
+            let cleaned = cleanOutput(output)
+            print(cleaned)
         } catch {
             print("Error reading or parsing file: \(error)")
             exit(1)
         }
+    }
+
+    /// Remove excessive blank lines and trailing whitespace
+    static func cleanOutput(_ text: String) -> String {
+        let lines = text.components(separatedBy: .newlines)
+        var result: [String] = []
+        var previousWasBlank = false
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            // Skip excessive blank lines
+            if trimmed.isEmpty {
+                if !previousWasBlank {
+                    result.append("")
+                }
+                previousWasBlank = true
+            } else {
+                result.append(line)
+                previousWasBlank = false
+            }
+        }
+
+        return result.joined(separator: "\n")
     }
 }

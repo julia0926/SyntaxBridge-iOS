@@ -5,7 +5,8 @@
 set -eo pipefail
 
 # Threshold: only activate for files with this many lines or more
-LINE_THRESHOLD=300
+# Lowered to 150 to catch more medium-sized files
+LINE_THRESHOLD=150
 
 # Read input JSON from stdin
 INPUT=$(cat)
@@ -89,14 +90,26 @@ if [ "$IS_SWIFT" = "true" ]; then
   fi
 
 elif [ "$IS_OBJC" = "true" ]; then
-  TOOL_PATH="$TOOLS_DIR/objc-summarizer.py"
-  
+  # Use v2 summarizer with regex-based parsing for better method extraction
+  TOOL_PATH="$TOOLS_DIR/objc-summarizer-v2.py"
+
   if [ -f "$TOOL_PATH" ]; then
     SUMMARY_FILE=$(mktemp)
     python3 "$TOOL_PATH" "$FILE_PATH" > "$SUMMARY_FILE" 2>/dev/null
-    
+
     if [ -s "$SUMMARY_FILE" ]; then
-      REASON="Large file ($TOTAL_LINES lines). Providing intelligent summary (interface only) via SyntaxBridge (ObjC)."
+      REASON="Large file ($TOTAL_LINES lines). Providing intelligent summary (declarations + method signatures) via SyntaxBridge (ObjC v2)."
+    fi
+  else
+    # Fallback to v1 if v2 not available
+    TOOL_PATH="$TOOLS_DIR/objc-summarizer.py"
+    if [ -f "$TOOL_PATH" ]; then
+      SUMMARY_FILE=$(mktemp)
+      python3 "$TOOL_PATH" "$FILE_PATH" > "$SUMMARY_FILE" 2>/dev/null
+
+      if [ -s "$SUMMARY_FILE" ]; then
+        REASON="Large file ($TOTAL_LINES lines). Providing intelligent summary (interface only) via SyntaxBridge (ObjC v1)."
+      fi
     fi
   fi
 fi
